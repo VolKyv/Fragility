@@ -1,21 +1,17 @@
 name: fragility-signals research run
 
 # Manual trigger any time from the Actions tab, plus an optional weekly
-# scheduled run. Not on every push by default — this pipeline re-fits
-# expanding-window statistics over 15+ years of daily data (AR + Turbulence
-# + null correlation, each an O(T) loop of NxN matrix ops); it's a few
-# minutes, not a few seconds, so it isn't wired to run on every commit.
+# scheduled run.
 on:
   workflow_dispatch: {}
   schedule:
-    # 21:30 UTC Friday, after the US close, once a week. Adjust or remove
-    # if you'd rather trigger manually only.
+    # 21:30 UTC Friday, after the US close, once a week.
     - cron: "30 21 * * 5"
 
 jobs:
   run-research:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Check out repo
@@ -29,6 +25,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Build S&P 500 universe
+        run: python -m scripts.build_universe
 
       - name: Run synthetic-data tests (no network required)
         run: python -m pytest tests/ -v
