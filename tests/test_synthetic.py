@@ -48,19 +48,19 @@ def synthetic_ohlcv(synthetic_price):
 
 
 def test_absorption_ratio_shape_and_bounds(synthetic_universe):
-    ar = signals.absorption_ratio(synthetic_universe, min_history=100)
+    ar = signals.absorption_ratio(synthetic_universe, cov_window=100)
     assert len(ar) > 0
     assert (ar >= 0).all() and (ar <= 1.0001).all()
 
 
 def test_turbulence_nonnegative(synthetic_universe):
-    turb = signals.turbulence_index(synthetic_universe, min_history=100)
+    turb = signals.turbulence_index(synthetic_universe, cov_window=100)
     assert len(turb) > 0
     assert (turb >= 0).all()
 
 
 def test_avg_pairwise_corr_bounds(synthetic_universe):
-    corr = signals.avg_pairwise_correlation(synthetic_universe, min_history=100)
+    corr = signals.avg_pairwise_correlation(synthetic_universe, cov_window=100)
     assert len(corr) > 0
     assert (corr >= -1.0001).all() and (corr <= 1.0001).all()
 
@@ -85,7 +85,7 @@ def test_distribution_days_bounds(synthetic_ohlcv):
 
 
 def test_walkforward_zscore_no_lookahead(synthetic_universe):
-    turb = signals.turbulence_index(synthetic_universe, min_history=100)
+    turb = signals.turbulence_index(synthetic_universe, cov_window=100)
     z = backtest.walk_forward_zscore(turb, min_periods=50)
     # z-score at the first valid point must not equal a full-sample z-score
     # (sanity check that it's genuinely expanding, not full-sample)
@@ -95,14 +95,14 @@ def test_walkforward_zscore_no_lookahead(synthetic_universe):
 
 
 def test_evaluate_signal_runs(synthetic_universe, synthetic_price):
-    turb = signals.turbulence_index(synthetic_universe, min_history=100)
+    turb = signals.turbulence_index(synthetic_universe, cov_window=100)
     label, _ = labels.forward_drawdown_labels(synthetic_price, D=-0.05, N=20)
     result = backtest.evaluate_signal(turb, label, N=20, min_periods=100)
     assert "auc" in result and "hac_tstat" in result
 
 
 def test_event_study_runs(synthetic_universe, synthetic_price):
-    turb = signals.turbulence_index(synthetic_universe, min_history=100)
+    turb = signals.turbulence_index(synthetic_universe, cov_window=100)
     fwd_ret = (synthetic_price.shift(-20) / synthetic_price - 1)
     result = backtest.event_study(turb, fwd_ret, min_periods=100)
     assert "n_triggered" in result
