@@ -1,0 +1,21 @@
+# PLACEHOLDER universe (~40 large caps across sectors).
+# Replace with your actual ~75-stock universe from the RMT Absorption Ratio
+# work before treating S1/S2/S6 results as meaningful.
+AAPL
+MSFT
+NVDA
+GOOGL
+AMZN
+META
+AVGO
+TSLA
+LLY
+JPM
+V
+UNH
+XOM
+MA
+COST
+HD
+PG
+JNJ
