@@ -6,3 +6,4 @@ statsmodels>=0.14
 yfinance>=0.2.40
 pytest>=8.0
 lxml>=5.0
+requests>=2.31
