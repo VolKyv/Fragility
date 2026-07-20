@@ -3,7 +3,7 @@ Central configuration. Change parameters here, not inline in analysis code.
 """
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 # --- Labels: pre-registered before any signal testing ---
 TRACKS = {
@@ -32,6 +32,14 @@ START_DATE = "2007-01-01"
 
 # --- Signal computation params ---
 MIN_HISTORY_DAYS = 252          # min lookback before scoring any signal
+# Run #2 amendment (pre-registered before the S&P-500-universe rerun):
+# covariance-based signals (S0 null, S1 AR, S2 Turbulence) use a ROLLING
+# 500-day window instead of expanding. Reason: with N~350 assets, an
+# expanding window starting at 252 days gives N > T (singular covariance),
+# making MP cleaning and Mahalanobis distances unreliable in early years,
+# and full-history eigendecompositions at 350x350 are computationally
+# prohibitive. 500d rolling is also closer to Kritzman's original spec.
+COV_WINDOW = 500
 DD_WINDOW = 25                  # O'Neil distribution-day rolling window
 DD_DECLINE_THRESHOLD = -0.002   # -0.2% close-to-close counts as a down day
 DD_CLEAR_RALLY = 0.05           # 5% rally from cluster low clears the count
