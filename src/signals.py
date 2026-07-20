@@ -6,7 +6,9 @@ regime work, and it's what makes the walk-forward backtest in backtest.py
 honest.
 
 Where a signal needs an estimation window (AR, Turbulence, null correlation),
-the window is expanding (all history up to t), not the full sample.
+the window is a ROLLING config.COV_WINDOW days ending strictly before t
+(run #2 amendment for the ~350-name S&P 500 universe: expanding windows
+starting at 252 days give N > T and a singular covariance).
 """
 import numpy as np
 import pandas as pd
@@ -14,17 +16,9 @@ import pandas as pd
 import config
 
 
-def _expanding_windows(n_rows, min_history):
-    """Yield (t, window_start) pairs: score index t using rows
-    [window_start, t) — strictly excludes t itself, i.e. current-day info
-    is never used to score the current day's fragility/turbulence."""
-    for t in range(min_history, n_rows):
-        yield t, 0  # expanding: window always starts at 0
-
-
 def absorption_ratio(returns_panel, rmt_clean=config.AR_RMT_CLEAN,
                       fallback_fraction=config.AR_FALLBACK_FRACTION,
-                      min_history=config.MIN_HISTORY_DAYS):
+                      cov_window=config.COV_WINDOW):
     """
     S1. Kritzman et al. (2011) Absorption Ratio: fraction of total variance
     explained by the top-k eigenvalues of the return covariance matrix.
@@ -34,16 +28,16 @@ def absorption_ratio(returns_panel, rmt_clean=config.AR_RMT_CLEAN,
     fraction of assets if MP cleaning finds zero signal eigenvalues
     (can happen in short/quiet windows).
 
-    Uses an EXPANDING window (all history to date), consistent with
-    filtered-only scoring elsewhere in this repo.
+    Uses a ROLLING cov_window-day window ending strictly before t
+    (run #2 amendment; see config.COV_WINDOW rationale).
     """
     values = returns_panel.values
     n_rows, n_assets = values.shape
     idx = returns_panel.index
     out = pd.Series(index=idx, dtype=float)
 
-    for t in range(min_history, n_rows):
-        window = values[:t]  # strictly before t
+    for t in range(cov_window, n_rows):
+        window = values[t - cov_window:t]  # rolling, strictly before t
         T = window.shape[0]
         cov = np.cov(window, rowvar=False)
         eigvals = np.linalg.eigvalsh(cov)[::-1]
@@ -67,10 +61,10 @@ def absorption_ratio(returns_panel, rmt_clean=config.AR_RMT_CLEAN,
     return out.dropna()
 
 
-def turbulence_index(returns_panel, min_history=config.MIN_HISTORY_DAYS):
+def turbulence_index(returns_panel, cov_window=config.COV_WINDOW):
     """
     S2. Kritzman & Li (2010) Turbulence: Mahalanobis distance of day t's
-    return vector from the expanding-window mean/covariance estimated on
+    return vector from the rolling cov_window mean/covariance estimated on
     data strictly before t. Uses pseudo-inverse for numerical stability
     when the universe is large relative to history.
     """
@@ -79,8 +73,8 @@ def turbulence_index(returns_panel, min_history=config.MIN_HISTORY_DAYS):
     idx = returns_panel.index
     out = pd.Series(index=idx, dtype=float)
 
-    for t in range(min_history, n_rows):
-        window = values[:t]
+    for t in range(cov_window, n_rows):
+        window = values[t - cov_window:t]
         mu = window.mean(axis=0)
         cov = np.cov(window, rowvar=False)
         cov_inv = np.linalg.pinv(cov)
@@ -90,10 +84,10 @@ def turbulence_index(returns_panel, min_history=config.MIN_HISTORY_DAYS):
     return out.dropna()
 
 
-def avg_pairwise_correlation(returns_panel, min_history=config.MIN_HISTORY_DAYS):
+def avg_pairwise_correlation(returns_panel, cov_window=config.COV_WINDOW):
     """
-    S0 (null). Average pairwise correlation across the universe, expanding
-    window. Every other signal must beat this out-of-sample or it's dropped
+    S0 (null). Average pairwise correlation across the universe, rolling
+    cov_window. Every other signal must beat this out-of-sample or it's dropped
     — this is the hardwired bar carried over from the existing AR work.
     """
     values = returns_panel.values
@@ -102,8 +96,8 @@ def avg_pairwise_correlation(returns_panel, min_history=config.MIN_HISTORY_DAYS)
     out = pd.Series(index=idx, dtype=float)
     iu = np.triu_indices(n_assets, k=1)
 
-    for t in range(min_history, n_rows):
-        window = values[:t]
+    for t in range(cov_window, n_rows):
+        window = values[t - cov_window:t]
         corr = np.corrcoef(window, rowvar=False)
         out.iloc[t] = np.nanmean(corr[iu])
 
