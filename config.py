@@ -3,7 +3,7 @@ Central configuration. Change parameters here, not inline in analysis code.
 """
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 
 # --- Labels: pre-registered before any signal testing ---
 TRACKS = {
